@@ -1,0 +1,40 @@
+id: transfer_money
+description: >-
+  Caller schedules a transfer for 09/04. The digits are identical in every
+  locale and the meaning is not: 4 September in en-US, 9 April everywhere else.
+  An agent that hardcodes one reading passes half this matrix and fails the rest.
+agent:
+  system_prompt_file: prompts/bank.md
+  tools:
+    - name: transfer_money
+      schema: { amount: string, date: string }
+matrix:
+  language: [en-US, en-IN, es-MX, pt-BR, hi-IN, de-DE]
+  voice: default
+  perturbation:
+    - id: clean
+    - id: telephone
+repeats: 2
+turns:
+  - user:
+      intent: transfer_200_on_09_04
+      variants:
+        numeric:
+          en-US: "Please transfer 200 on 09/04."
+          en-IN: "Please transfer 200 on 09/04."
+          es-MX: "Por favor transfiera 200 el 09/04."
+          pt-BR: "Por favor, transferir 200 no dia 09/04."
+          hi-IN: "कृपया 09/04 को 200 ट्रांसफर करें।"
+          de-DE: "Bitte überweisen Sie 200 am 09/04."
+        casual:
+          en-US: "Can you send 200 on 09/04?"
+          en-IN: "Can you send 200 on 09/04?"
+          es-MX: "¿Puedes mandar 200 el 09/04?"
+          pt-BR: "Dá pra mandar 200 no 09/04?"
+          hi-IN: "क्या आप 09/04 को 200 भेज सकते हैं?"
+          de-DE: "Kannst du am 09/04 200 überweisen?"
+    expect:
+      tool_call:
+        name: transfer_money
+        arguments: { amount: "200", date: "09/04" }
+      max_first_audio_ms: 1500

@@ -218,3 +218,53 @@ async def test_transcribing_does_not_block_the_caller() -> None:
 
     assert elapsed < 0.2, f"send_silence waited {elapsed:.2f}s for transcription"
     assert any(event.kind == "tool_call" for event in events)
+
+
+BANK_TOOLS = [{"name": "transfer_money", "schema": {"amount": "string", "date": "string"}}]
+
+
+async def bank_turn(text: str) -> list[AgentEvent]:
+    adapter = MockAdapter(transcriber=StubTranscriber(text), reply_ms=60)
+    session = await adapter.session(system_prompt=None, tools=BANK_TOOLS)
+    for frame in frames(tone(200)):
+        await session.send_audio(frame)
+    await session.send_silence(600)
+    await session.close()
+    return [event async for event in session.events()]
+
+
+async def test_the_amount_is_not_confused_with_the_day_of_the_month() -> None:
+    events = await bank_turn("Bitte überweisen Sie 200 am 9. April.")
+
+    calls = [event.tool_call for event in events if event.kind == "tool_call"]
+    assert calls[0] is not None
+    assert calls[0].arguments["amount"] == "200"
+    assert calls[0].arguments["date"] == "2026-04-09"
+
+
+async def test_it_reads_an_english_spoken_date() -> None:
+    events = await bank_turn("Can you send 200 on September 4th?")
+
+    calls = [event.tool_call for event in events if event.kind == "tool_call"]
+    assert calls[0] is not None
+    assert calls[0].arguments == {"amount": "200", "date": "2026-09-04"}
+
+
+SHOP_TOOLS = [{"name": "check_order_status", "schema": {"order_id": "string"}}]
+
+
+async def test_it_fills_an_identifier_parameter() -> None:
+    adapter = MockAdapter(
+        transcriber=StubTranscriber("Could you tell me the status of order number 4471?"),
+        reply_ms=60,
+    )
+    session = await adapter.session(system_prompt=None, tools=SHOP_TOOLS)
+    for frame in frames(tone(200)):
+        await session.send_audio(frame)
+    await session.send_silence(600)
+    await session.close()
+
+    events = [event async for event in session.events()]
+    calls = [event.tool_call for event in events if event.kind == "tool_call"]
+    assert calls[0] is not None
+    assert calls[0].arguments == {"order_id": "4471"}

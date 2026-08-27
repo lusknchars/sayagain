@@ -22,20 +22,41 @@ turns:
       variants:
         formal:
           en-US: "I'd like to reschedule my appointment to Friday morning."
+          en-IN: "I would like to reschedule my appointment to Friday morning, please."
+          es-MX: "Me gustaría reprogramar mi cita para el viernes por la mañana."
           pt-BR: "Gostaria de reagendar minha consulta para sexta de manhã."
+          hi-IN: "मैं अपना अपॉइंटमेंट शुक्रवार सुबह के लिए बदलना चाहता हूँ।"
+          de-DE: "Ich möchte meinen Termin auf Freitagvormittag verschieben."
         casual:
           en-US: "Can I move my thing to Friday morning?"
+          en-IN: "Can you shift my appointment to Friday morning?"
+          es-MX: "¿Puedo mover mi cita al viernes en la mañana?"
           pt-BR: "Dá pra jogar minha consulta pra sexta de manhã?"
+          hi-IN: "क्या मैं अपना अपॉइंटमेंट शुक्रवार सुबह कर सकता हूँ?"
+          de-DE: "Kann ich meinen Termin auf Freitagmorgen schieben?"
         disfluent:
           en-US: "Um, so, I was, like, wondering if I could... move it? To Friday? Morning?"
+          en-IN: "Um, actually, I was thinking, no, wondering... can it be Friday? Morning?"
+          es-MX: "Este... o sea, yo quería, como, cambiarla para... ¿el viernes? ¿En la mañana?"
           pt-BR: "É... então, eu queria, tipo, mudar pra... sexta? De manhã?"
+          hi-IN: "मतलब... मैं सोच रहा था कि... अपॉइंटमेंट शुक्रवार को? सुबह?"
+          de-DE: "Also, ähm, ich wollte fragen, ob ich den Termin... auf Freitag? Vormittag?"
         codeswitch:
           en-US: "Can I move it to sexta, like, in the morning?"
+          en-IN: "Can I move my appointment to shukravar, in the morning?"
+          es-MX: "¿Puedo mover mi cita al Friday, tipo, en la mañana?"
+          pt-BR: "Dá pra mudar minha consulta pra Friday de manhã?"
+          hi-IN: "क्या मैं अपना अपॉइंटमेंट Friday morning कर सकता हूँ?"
+          de-DE: "Kann ich meinen Termin auf Friday morning verschieben?"
     interrupt:
       after_agent_speaks_ms: 800
       with:
         en-US: "Sorry — Friday, not Thursday."
+        en-IN: "Sorry — Friday, not Thursday."
+        es-MX: "Perdón — el viernes, no el jueves."
         pt-BR: "Desculpa — sexta, não quinta."
+        hi-IN: "माफ़ कीजिए — शुक्रवार, गुरुवार नहीं।"
+        de-DE: "Entschuldigung — Freitag, nicht Donnerstag."
     expect:
       tool_call:
         name: reschedule_appointment

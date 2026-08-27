@@ -9,19 +9,20 @@ Same intent, many surface forms — does the agent still do the right thing?
 
 ```bash
 pip install sayagain
-sayagain run examples/ --adapter mock
+sayagain run examples/reschedule_appointment.yaml --only-language en-US --repeats 1
 ```
 
-That runs 126 cases — four ways of asking for the same thing, in two languages,
-through six acoustic conditions, three times each — against a bundled toy agent,
-and tells you which of them broke and why.
+That is 24 cases — four ways of asking for the same thing, through six acoustic
+conditions — against a bundled toy agent, and it takes a few minutes. The three
+bundled scenarios in full are 624 cases across six languages and take about an
+hour on a laptop; `sayagain run examples/` runs all of them.
 
-It will exit non-zero. Every case in the run above fails one assertion: the
-bundled agent runs whisper-small on CPU and answers in ~2.1 s, against the
-example scenario's 1500 ms budget. That is the harness telling the truth about
-the agent it was pointed at, and it is why rates are reported per assertion —
-three of the four are fine, and collapsing them into one number would have hidden
-the only interesting result in the run.
+**It will exit non-zero, and that is the honest answer.** Every case fails one
+assertion: the bundled agent runs whisper-small on CPU and answers in ~2.1 s,
+against the example's 1500 ms budget. Three of the four assertions pass.
+Collapsing them into a single pass rate would have printed `0%` and hidden the
+only interesting result in the run, which is why rates are reported per
+assertion.
 
 ## Why
 
@@ -59,8 +60,19 @@ reason to run this rather than read a pass rate.
 
 ## What it found on its own bundled agent
 
-The self-test run above is against `--adapter mock`, a ~200-line keyword matcher
-with an energy-based endpointer. Two results, both scoped to that agent:
+The figure above is a self-test: `--adapter mock` is a ~200-line keyword matcher
+with an energy-based endpointer, bundled so the demo and CI run without an API
+key. Findings about it are findings about *it*.
+
+It comes from one run, and here is exactly which one — 126 cases, scoped to two
+of the six languages, on a laptop:
+
+```bash
+sayagain run examples/reschedule_appointment.yaml \
+  --only-language en-US --only-language pt-BR --no-realtime
+```
+
+Two results:
 
 **Register beat acoustics.** Tool-call correctness was 100% for the formal and
 casual phrasings in both languages and for the code-switched one in en-US, and
@@ -76,6 +88,23 @@ keeps an energy-based VAD engaged through the hesitation pauses that otherwise e
 the turn early, so the utterance survives in one piece instead of being cut in
 two. This is a property of *that* endpointer, not a fact about voice agents — but
 it is exactly the kind of thing you want to find before a customer does.
+
+## The bundled scenarios
+
+| scenario | what it is really testing |
+|---|---|
+| `reschedule_appointment` | the same intent in four registers, six languages, six acoustic conditions, with a barge-in correction |
+| `order_status` | whether a four-digit order number survives the channel |
+| `transfer_money` | a date whose meaning changes with the caller's locale |
+
+`transfer_money` is the one worth explaining. The scenario says `09/04` in every
+language, and text-to-speech reads it aloud in its own locale — so an en-US
+caller is heard saying "September 4th" and a de-DE caller "9. April". The same
+YAML therefore asserts a *different absolute date* per locale, and only an agent
+that hears correctly in each one passes. Running it against the bundled toy agent
+fails in five different ways across six languages, every one of them real:
+digits fused into the wrong word, a date collapsed into `0904`, Hindi numerals
+lost entirely.
 
 ## A scenario
 

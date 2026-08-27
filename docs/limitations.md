@@ -30,7 +30,7 @@ backend changes absolute numbers; only compare runs that used the same one.
 
 ## The noise beds are synthetic
 
-`assets/noise/cafe.wav` and `street.wav` are generated, not recorded. They
+`sayagain/assets/noise/cafe.wav` and `street.wav` are generated, not recorded. They
 reproduce the spectral shape and modulation that degrade ASR, not the acoustics
 of an actual room — no reverberation, no Lombard effect, no microphone. Point a
 perturbation at your own recording when the answer matters:

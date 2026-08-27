@@ -4,7 +4,7 @@ These are not recordings. They are deterministic synthesis, so the repo carries
 no third-party audio licence and `pip install sayagain` is self-contained. Point
 `noise(kind=...)` at your own recordings when you need the real thing.
 
-Run: uv run python assets/noise/generate.py
+Run: uv run python sayagain/assets/noise/generate.py
 """
 
 from __future__ import annotations

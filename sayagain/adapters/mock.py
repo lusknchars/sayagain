@@ -5,38 +5,21 @@ speak back. That shallowness is the point — it degrades the way a real cascade
 agent degrades once the audio gets hard, so the harness has something honest to
 measure without anyone needing an API key.
 
-The keyword tables here are a placeholder for `sayagain.normalize`, which grows
-the real cross-language vocabulary on day 3.
+Weekday and time-of-day vocabulary comes from `sayagain.normalize`, so the toy
+agent and the scorer read the world the same way. What stays here is the part
+that is genuinely the agent's own: which words trigger which tool, and how it
+reads an ambiguous date.
 """
 
 from __future__ import annotations
 
 import asyncio
-import re
-import unicodedata
 from collections.abc import AsyncIterator
 from typing import Any, Protocol
 
 from sayagain.adapters.base import AgentEvent, Clock, ToolCall
 from sayagain.audio import FRAME_MS, frames, has_speech, silence, tone
-
-#: Canonical weekday -> the surface forms the mock recognises.
-WEEKDAYS: dict[str, set[str]] = {
-    "monday": {"monday", "segunda", "lunes", "montag"},
-    "tuesday": {"tuesday", "terca", "martes", "dienstag"},
-    "wednesday": {"wednesday", "quarta", "miercoles", "mittwoch"},
-    "thursday": {"thursday", "quinta", "jueves", "donnerstag"},
-    "friday": {"friday", "sexta", "viernes", "freitag"},
-    "saturday": {"saturday", "sabado", "samstag"},
-    "sunday": {"sunday", "domingo", "sonntag"},
-}
-
-#: Canonical part of day -> the surface forms the mock recognises.
-DAYPARTS: dict[str, set[str]] = {
-    "morning": {"morning", "manha", "manana", "morgen", "vormittag"},
-    "afternoon": {"afternoon", "tarde", "nachmittag"},
-    "evening": {"evening", "night", "noite", "noche", "abend"},
-}
+from sayagain.normalize import find_date, find_daypart, tokens
 
 #: Tool-name tokens -> other words that should trigger the same tool.
 SYNONYMS: dict[str, set[str]] = {
@@ -50,32 +33,52 @@ SYNONYMS: dict[str, set[str]] = {
         "jogar",
         "mover",
         "cambiar",
+        "reprogramar",
         "verschieben",
+        "schieben",
+        "बदलना",
+        "करना",
     },
-    "appointment": {"consulta", "cita", "termin", "agendamento", "appointments"},
-    "cancel": {"cancelar", "stornieren"},
-    "order": {"pedido", "orden", "bestellung"},
-    "status": {"estado", "situacao"},
-    "transfer": {"transferir", "ueberweisen"},
-    "money": {"dinheiro", "dinero", "geld"},
+    "appointment": {
+        "consulta",
+        "cita",
+        "termin",
+        "agendamento",
+        "appointments",
+        "अपॉइंटमेंट",
+    },
+    "cancel": {"cancelar", "stornieren", "रद्द"},
+    "order": {"pedido", "orden", "bestellung", "ऑर्डर"},
+    "status": {"estado", "situacao", "estatus", "स्थिति", "where"},
+    "transfer": {
+        "transferir",
+        "transfiera",
+        "transfiere",
+        "ueberweisen",
+        "uberweisen",
+        "uberweise",
+        "transferencia",
+        "mandar",
+        "manda",
+        "enviar",
+        "envia",
+        "ट्रांसफर",
+        "send",
+    },
+    "money": {"dinheiro", "dinero", "geld", "पैसे", "reais", "euros", "pesos"},
 }
-
-_WEEKDAY_BY_FORM = {form: day for day, forms in WEEKDAYS.items() for form in forms}
-_DAYPART_BY_FORM = {form: part for part, forms in DAYPARTS.items() for form in forms}
 
 #: Tool argument name -> the state field it moves, for `state()`.
 STATE_FIELDS = {"date": "day", "time": "time"}
 
+#: Parameters the mock fills with a number lifted out of the sentence.
+_NUMBER_FIELDS = frozenset({"amount", "id", "number", "reference", "quantity"})
 
-def normalise(text: str) -> str:
-    """Lowercase and strip accents so `manhã` and `manha` are one word."""
-    decomposed = unicodedata.normalize("NFD", text.lower())
-    return "".join(char for char in decomposed if not unicodedata.combining(char))
-
-
-def tokens(text: str) -> list[str]:
-    """Split text into accent-free alphanumeric tokens."""
-    return re.findall(r"[a-z0-9]+", normalise(text))
+#: The mock reads every numeric date as month-first, whatever the caller's
+#: locale. That is a bug, on purpose: `examples/transfer_money.yaml` exists to
+#: catch exactly this class of mistake, and a toy agent that quietly got it right
+#: would make the scenario look like it tests nothing.
+MOCK_DATE_LOCALE = "en-US"
 
 
 class Transcriber(Protocol):
@@ -253,7 +256,7 @@ class MockSession:
             if not _tool_matches(name, heard):
                 continue
             schema = tool.get("schema") or {}
-            arguments = _extract_arguments(heard, list(schema))
+            arguments = _extract_arguments(text, list(schema))
             return ToolCall(name=name, arguments=arguments, t_ns=self._clock.now())
         return None
 
@@ -307,25 +310,33 @@ def _tool_matches(tool_name: str, heard: list[str]) -> bool:
     return False
 
 
-def _extract_arguments(heard: list[str], parameters: list[str]) -> dict[str, Any]:
+def _extract_arguments(text: str, parameters: list[str]) -> dict[str, Any]:
+    """Fill whichever declared parameters the sentence actually names."""
     found: dict[str, Any] = {}
     for parameter in parameters:
-        if parameter in {"date", "day"}:
-            value = _first_match(heard, _WEEKDAY_BY_FORM)
+        value: Any | None = None
+        if parameter in {"date", "day", "when"}:
+            value = find_date(text, language=MOCK_DATE_LOCALE)
         elif parameter == "time":
-            value = _first_match(heard, _DAYPART_BY_FORM)
-        else:
-            value = None
+            value = find_daypart(text)
+        elif parameter in _NUMBER_FIELDS or parameter.endswith("_id"):
+            value = _longest_number(text)
         if value is not None:
             found[parameter] = value
     return found
 
 
-def _first_match(heard: list[str], table: dict[str, str]) -> str | None:
-    for token in heard:
-        if token in table:
-            return table[token]
-    return None
+def _longest_number(text: str) -> str | None:
+    """Pick the number with the most digits.
+
+    A toy heuristic, and a deliberate one: an amount is nearly always longer
+    than a day of the month, so `200 am 9. April` gives 200 rather than 9.
+    A real agent would use the sentence structure instead.
+    """
+    numbers = [token for token in tokens(text) if token.isdigit()]
+    if not numbers:
+        return None
+    return max(numbers, key=len)
 
 
 def _state_updates(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:

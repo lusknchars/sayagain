@@ -91,6 +91,25 @@ DAYPARTS: dict[str, set[str]] = {
     "evening": {"evening", "night", "noite", "noche", "abend", "nacht", "sham", "शाम", "रात"},
 }
 
+#: Month number -> surface forms. Abbreviations that are ordinary words or that
+#: collide across languages are deliberately absent: `mar` is short for March,
+#: for Spanish `martes`, and for the sea, and guessing any of them is worse than
+#: reporting no date at all.
+MONTHS: dict[int, set[str]] = {
+    1: {"january", "jan", "enero", "ene", "janeiro", "januar", "जनवरी"},
+    2: {"february", "feb", "febrero", "fevereiro", "fev", "februar", "फरवरी"},
+    3: {"march", "marzo", "marco", "marz", "मार्च"},
+    4: {"april", "abril", "abr", "अप्रैल"},
+    5: {"may", "mayo", "maio", "mai", "मई"},
+    6: {"june", "jun", "junio", "junho", "juni", "जून"},
+    7: {"july", "jul", "julio", "julho", "juli", "जुलाई"},
+    8: {"august", "aug", "agosto", "ago", "अगस्त"},
+    9: {"september", "sept", "sep", "septiembre", "setembro", "set", "सितंबर"},
+    10: {"october", "oct", "octubre", "outubro", "out", "oktober", "okt", "अक्टूबर"},
+    11: {"november", "nov", "noviembre", "novembro", "नवंबर"},
+    12: {"december", "dec", "diciembre", "dic", "dezembro", "dez", "dezember", "दिसंबर"},
+}
+
 #: Relative day -> surface forms, resolved against `today`.
 RELATIVE_DAYS: dict[int, set[str]] = {
     0: {"today", "hoje", "hoy", "heute", "aaj", "आज"},
@@ -105,9 +124,12 @@ RELATIVE_DAYS: dict[int, set[str]] = {
 _WEEKDAY_BY_FORM = {form: day for day, forms in WEEKDAYS.items() for form in forms}
 _DAYPART_BY_FORM = {form: part for part, forms in DAYPARTS.items() for form in forms}
 _OFFSET_BY_FORM = {form: offset for offset, forms in RELATIVE_DAYS.items() for form in forms}
+_MONTH_BY_FORM = {form: month for month, forms in MONTHS.items() for form in forms}
 
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _NUMERIC_DATE = re.compile(r"^(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?$")
+_NUMERIC_DATE_IN_TEXT = re.compile(r"\b(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?\b")
+_ISO_DATE_IN_TEXT = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 _CLOCK = re.compile(r"^(\d{1,2}):(\d{2})$")
 
 _LATIN_MAX = 0x0250
@@ -183,14 +205,28 @@ def arguments_match(
     return True
 
 
-def _normalise_date(text: str, *, language: str, today: date) -> str:
-    stripped = normalise_text(text)
-    if _ISO_DATE.match(stripped):
-        return stripped
+def find_date(text: str, *, language: str, today: date | None = None) -> str | None:
+    """Find a date anywhere in a sentence and reduce it to canonical form.
 
-    numeric = _NUMERIC_DATE.match(stripped)
+    Ordered deliberately: an explicit ISO date beats a numeric one, a numeric one
+    beats a weekday, and a weekday beats a relative day, because that is the
+    order of how specific they are. Returns None when the sentence names no date
+    at all, which is different from naming one badly.
+    """
+    stripped = normalise_text(text)
+    when = today or date.today()
+
+    iso = _ISO_DATE_IN_TEXT.search(stripped)
+    if iso:
+        return iso.group(0)
+
+    numeric = _NUMERIC_DATE_IN_TEXT.search(stripped)
     if numeric:
-        return _resolve_numeric_date(numeric, language=language, today=today)
+        return _resolve_numeric_date(numeric, language=language, today=when)
+
+    spoken = _find_month_and_day(tokens(stripped), today=when)
+    if spoken is not None:
+        return spoken
 
     for token in tokens(stripped):
         if token in _WEEKDAY_BY_FORM:
@@ -198,9 +234,73 @@ def _normalise_date(text: str, *, language: str, today: date) -> str:
 
     for token in tokens(stripped):
         if token in _OFFSET_BY_FORM:
-            return (today + timedelta(days=_OFFSET_BY_FORM[token])).isoformat()
+            return (when + timedelta(days=_OFFSET_BY_FORM[token])).isoformat()
 
-    return stripped
+    return None
+
+
+def find_daypart(text: str) -> str | None:
+    """Find a part of day anywhere in a sentence, or None if none is named."""
+    for token in tokens(text):
+        if token in _DAYPART_BY_FORM:
+            return _DAYPART_BY_FORM[token]
+    return None
+
+
+def _normalise_date(text: str, *, language: str, today: date) -> str:
+    stripped = normalise_text(text)
+    if _ISO_DATE.match(stripped):
+        return stripped
+    numeric = _NUMERIC_DATE.match(stripped)
+    if numeric:
+        return _resolve_numeric_date(numeric, language=language, today=today)
+    found = find_date(stripped, language=language, today=today)
+    return found if found is not None else stripped
+
+
+def _find_month_and_day(words: list[str], *, today: date) -> str | None:
+    """Read a spoken date such as `September 4th`, `9. April` or `4 de abril`.
+
+    Word order differs by language, so the day is looked for on either side of
+    the month name, nearest first. A four-digit number nearby is read as a year,
+    never as a day.
+    """
+    for index, word in enumerate(words):
+        month = _MONTH_BY_FORM.get(word)
+        if month is None:
+            continue
+        day = _nearby_number(words, index, low=1, high=31, digits=2)
+        if day is None:
+            continue
+        year = _nearby_number(words, index, low=1900, high=2999, digits=4) or today.year
+        try:
+            return date(year, month, day).isoformat()
+        except ValueError:
+            return None
+    return None
+
+
+def _nearby_number(words: list[str], index: int, *, low: int, high: int, digits: int) -> int | None:
+    """Find a number beside `index`, closest first, within the given range."""
+    for offset in (-1, 1, -2, 2):
+        position = index + offset
+        if not 0 <= position < len(words):
+            continue
+        word = _drop_ordinal_suffix(words[position])
+        if not word.isdigit() or len(word) > digits:
+            continue
+        value = int(word)
+        if low <= value <= high:
+            return value
+    return None
+
+
+def _drop_ordinal_suffix(word: str) -> str:
+    """Turn `4th`, `1st`, `2nd`, `3rd` into the bare number."""
+    for suffix in ("st", "nd", "rd", "th"):
+        if word.endswith(suffix) and word[: -len(suffix)].isdigit():
+            return word[: -len(suffix)]
+    return word
 
 
 def _resolve_numeric_date(match: re.Match[str], *, language: str, today: date) -> str:

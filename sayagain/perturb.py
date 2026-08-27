@@ -24,7 +24,8 @@ from sayagain.scenario import PerturbationSpec
 
 Samples = NDArray[np.float64]
 
-NOISE_DIR = Path(__file__).resolve().parent.parent / "assets" / "noise"
+#: Bundled beds live inside the package so they survive `pip install`.
+NOISE_DIR = Path(__file__).resolve().parent / "assets" / "noise"
 
 TELEPHONE_BAND_HZ = (300.0, 3400.0)
 TELEPHONE_RATE = 8_000

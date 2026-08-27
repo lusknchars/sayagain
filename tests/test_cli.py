@@ -6,6 +6,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from sayagain.cli import app
+from sayagain.expand import expand
 from sayagain.scenario import load_scenario
 
 runner = CliRunner()
@@ -13,11 +14,13 @@ EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
 
 
 def test_run_reports_the_size_of_the_matrix() -> None:
+    expected = len(expand(load_scenario(EXAMPLES / "reschedule_appointment.yaml")))
+
     result = runner.invoke(app, ["run", str(EXAMPLES), "--adapter", "mock", "--dry-run"])
 
     assert result.exit_code == 0, result.output
     assert "reschedule_appointment" in result.output
-    assert "126" in result.output
+    assert str(expected) in result.output
 
 
 def test_run_applies_the_filters() -> None:
@@ -128,10 +131,13 @@ def test_openai_realtime_without_a_key_fails_before_running_anything() -> None:
 
 
 def test_run_can_filter_to_one_register() -> None:
+    scenario = load_scenario(EXAMPLES / "reschedule_appointment.yaml")
+    expected = len(expand(scenario, registers=["disfluent"], repeats=1))
+
     result = runner.invoke(
         app,
         ["run", str(EXAMPLES), "--only-register", "disfluent", "--repeats", "1", "--dry-run"],
     )
 
     assert result.exit_code == 0, result.output
-    assert "12" in result.output  # 2 languages x 6 perturbations
+    assert str(expected) in result.output

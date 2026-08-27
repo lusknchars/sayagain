@@ -82,7 +82,11 @@ def test_variants_keep_register_then_language_shape() -> None:
     variants = scenario.turns[0].user.variants
     assert set(variants) == {"formal", "casual", "disfluent", "codeswitch"}
     assert variants["casual"]["pt-BR"] == "Dá pra jogar minha consulta pra sexta de manhã?"
-    assert "pt-BR" not in variants["codeswitch"]
+    assert all(
+        isinstance(language, str) and isinstance(line, str)
+        for by_language in variants.values()
+        for language, line in by_language.items()
+    )
 
 
 def test_expectations_are_parsed() -> None:

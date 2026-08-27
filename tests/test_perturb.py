@@ -1,5 +1,7 @@
 """Tests for the acoustic perturbation layer."""
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -196,3 +198,18 @@ def test_describe_records_the_parameters_for_the_report() -> None:
         "kind": "cafe",
         "snr_db": 10.0,
     }
+
+
+def test_the_noise_beds_live_inside_the_package_so_they_ship() -> None:
+    """A wheel only carries what is under the package directory.
+
+    Kept as a test because the failure mode is invisible in a source checkout:
+    everything works locally and `pip install sayagain` ships no noise at all.
+    """
+    import sayagain
+    from sayagain.perturb import NOISE_DIR
+
+    package_root = Path(sayagain.__file__).resolve().parent
+    assert NOISE_DIR.resolve().is_relative_to(package_root)
+    assert (NOISE_DIR / "cafe.wav").is_file()
+    assert (NOISE_DIR / "street.wav").is_file()

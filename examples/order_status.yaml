@@ -1,0 +1,48 @@
+id: order_status
+description: >-
+  Caller wants the status of order 4471. Digits are where ASR quietly fails, so
+  this scenario is mostly a test of whether the number survives the channel.
+agent:
+  system_prompt_file: prompts/support.md
+  tools:
+    - name: check_order_status
+      schema: { order_id: string }
+matrix:
+  language: [en-US, en-IN, es-MX, pt-BR, hi-IN, de-DE]
+  voice: default
+  perturbation:
+    - id: clean
+    - id: telephone
+    - id: cafe_10db
+    - id: choppy
+repeats: 2
+turns:
+  - user:
+      intent: check_order_4471
+      variants:
+        formal:
+          en-US: "Could you tell me the status of order number 4471?"
+          en-IN: "Could you please check the status of order number 4471?"
+          es-MX: "¿Me puede decir el estado del pedido número 4471?"
+          pt-BR: "Pode me dizer o estado do pedido número 4471?"
+          hi-IN: "क्या आप ऑर्डर नंबर 4471 की स्थिति बता सकते हैं?"
+          de-DE: "Können Sie mir den Status der Bestellung Nummer 4471 sagen?"
+        casual:
+          en-US: "Hey, where's my order? It's 4471."
+          en-IN: "Hi, where is my order 4471?"
+          es-MX: "Oiga, ¿dónde está mi pedido? Es el 4471."
+          pt-BR: "Oi, cadê meu pedido? É o 4471."
+          hi-IN: "मेरा ऑर्डर कहाँ है? नंबर 4471।"
+          de-DE: "Hallo, wo ist meine Bestellung? Die 4471."
+        disfluent:
+          en-US: "Yeah so, um, my order, it's... 4471? I think? Where is it?"
+          en-IN: "So, actually, my order, the number is... 4471, no, yes, 4471."
+          es-MX: "Sí, este... mi pedido, es el... ¿4471? Creo. ¿Dónde está?"
+          pt-BR: "É, então, meu pedido, é o... 4471? Acho. Cadê?"
+          hi-IN: "हाँ तो... मेरा ऑर्डर... 4471? शायद। कहाँ है?"
+          de-DE: "Ja also, ähm, meine Bestellung, die ist... 4471? Glaube ich."
+    expect:
+      tool_call:
+        name: check_order_status
+        arguments: { order_id: "4471" }
+      max_first_audio_ms: 1500

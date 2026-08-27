@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.1.0] - 2026-08-27
 
 ### Added
 - Scenario schema (`sayagain/scenario.py`) with YAML loading and validation.
@@ -13,6 +13,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   transcriber, so tests need no ASR model.
 - Matrix expansion (`sayagain/expand.py`): register x language x perturbation x repeat.
 - `sayagain run`, `sayagain new`, `sayagain voices`, `sayagain doctor`.
+- Three example scenarios in six languages: `reschedule_appointment`,
+  `order_status` (digits through a channel) and `transfer_money` (a date whose
+  meaning changes with the caller's locale).
+- Spoken month-and-day dates in all six languages, because text-to-speech reads
+  `09/04` aloud in its own locale: an agent hears "September 4th" or "9. April",
+  never the digits.
 - Cross-language argument normalisation (`sayagain/normalize.py`): weekdays and
   parts of day in all six matrix languages, locale-dependent numeric dates, and
   the `mañana`/`morgen` tomorrow-vs-morning ambiguity resolved by field.
@@ -50,7 +56,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Notes
 - The bundled noise beds are synthesised, not recorded. See
-  `assets/noise/LICENSE.md`.
+  `sayagain/assets/noise/LICENSE.md`.
 - `AgentSession.events()` is declared non-async in the protocol; async generator
   functions return an `AsyncIterator` rather than awaiting one, so declaring it
   `async def` would make every real implementation fail type checking.
+
+[0.1.0]: https://github.com/lusknchars/sayagain/releases/tag/v0.1.0

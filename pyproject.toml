@@ -58,7 +58,6 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["sayagain"]
-artifacts = ["assets/noise/*.wav"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
