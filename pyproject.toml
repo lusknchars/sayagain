@@ -1,0 +1,86 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sayagain"
+version = "0.1.0"
+description = "Crash-test your voice agent: accents, bad lines, slang, interruptions."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+keywords = ["voice-agents", "asr", "testing", "accents", "evaluation", "speech"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+    "rich>=13.7",
+    "websockets>=12.0",
+    "edge-tts>=6.1",
+    "numpy>=1.26",
+    "soundfile>=0.12",
+    "scipy>=1.11",
+    "faster-whisper>=1.0",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+# Base install is complete on purpose: `pip install sayagain && sayagain run examples/`
+# has to work. These are additive providers, all lazily imported.
+openai = ["openai>=1.40"]
+stretch = ["librosa>=0.10"]
+all = ["sayagain[openai,stretch]"]
+
+[project.urls]
+Homepage = "https://github.com/lusknchars/sayagain"
+Issues = "https://github.com/lusknchars/sayagain/issues"
+
+[project.scripts]
+sayagain = "sayagain.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "types-PyYAML>=6.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["sayagain"]
+artifacts = ["assets/noise/*.wav"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "D", "RUF"]
+ignore = ["D203", "D213", "D107"]  # class docstrings cover __init__
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+
+[tool.mypy]
+python_version = "3.12"  # numpy stubs need 3.12+; CI still runs the tests on 3.11
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["soundfile", "faster_whisper", "ctranslate2", "edge_tts", "librosa", "matplotlib.*", "scipy.*"]
+ignore_missing_imports = true

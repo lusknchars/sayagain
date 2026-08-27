@@ -1,0 +1,45 @@
+id: reschedule_appointment
+description: User wants to move an existing appointment to Friday morning.
+agent:
+  system_prompt_file: prompts/clinic.md
+  tools:
+    - name: reschedule_appointment
+      schema: { date: string, time: string }
+matrix:
+  language: [en-US, en-IN, es-MX, pt-BR, hi-IN, de-DE]
+  voice: default
+  perturbation:
+    - id: clean
+    - id: telephone
+    - id: cafe_10db
+    - id: street_5db
+    - id: fast
+    - id: choppy
+repeats: 3
+turns:
+  - user:
+      intent: reschedule_to_friday_morning
+      variants:
+        formal:
+          en-US: "I'd like to reschedule my appointment to Friday morning."
+          pt-BR: "Gostaria de reagendar minha consulta para sexta de manhã."
+        casual:
+          en-US: "Can I move my thing to Friday morning?"
+          pt-BR: "Dá pra jogar minha consulta pra sexta de manhã?"
+        disfluent:
+          en-US: "Um, so, I was, like, wondering if I could... move it? To Friday? Morning?"
+          pt-BR: "É... então, eu queria, tipo, mudar pra... sexta? De manhã?"
+        codeswitch:
+          en-US: "Can I move it to sexta, like, in the morning?"
+    interrupt:
+      after_agent_speaks_ms: 800
+      with:
+        en-US: "Sorry — Friday, not Thursday."
+        pt-BR: "Desculpa — sexta, não quinta."
+    expect:
+      tool_call:
+        name: reschedule_appointment
+        arguments: { date: "friday", time: "morning" }
+      max_first_audio_ms: 1500
+      max_barge_in_stop_ms: 500
+      end_state: { appointment.day: "friday" }
