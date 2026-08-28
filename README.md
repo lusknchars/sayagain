@@ -62,32 +62,48 @@ reason to run this rather than read a pass rate.
 
 The figure above is a self-test: `--adapter mock` is a ~200-line keyword matcher
 with an energy-based endpointer, bundled so the demo and CI run without an API
-key. Findings about it are findings about *it*.
-
-It comes from one run, and here is exactly which one — 126 cases, scoped to two
-of the six languages, on a laptop:
+key. Findings about it are findings about *it*. Here is the run that produced it
+— the full 432-case matrix, six languages, on a laptop:
 
 ```bash
-sayagain run examples/reschedule_appointment.yaml \
-  --only-language en-US --only-language pt-BR --no-realtime
+sayagain run examples/reschedule_appointment.yaml --no-realtime
 ```
 
-Two results:
+**Who is speaking, and how they phrase it, mattered about ten times more than
+what the line sounded like.** Tool-call correctness, spread along each axis:
 
-**Register beat acoustics.** Tool-call correctness was 100% for the formal and
-casual phrasings in both languages and for the code-switched one in en-US, and
-33% (en-US) / 0% (pt-BR) for the *disfluent* one — `"Um, so, I was, like, wondering if I could...
-move it? To Friday? Morning?"`. Six acoustic conditions barely moved the fluent
-registers. How the sentence was built mattered more than what was done to the
-audio.
+| axis | worst | best | spread |
+|---|---|---|---|
+| language | hi-IN 4% | en-US 83% | **79 points** |
+| register | disfluent 11% | formal 81% | **70 points** |
+| perturbation | clean 50% | cafe_10db 58% | **8 points** |
 
-**Background noise made it more robust, not less.** Of the eighteen en-US
-disfluent cases, the six that passed were all under `cafe_10db` and `street_5db`;
-every case under `clean`, `telephone`, `fast` and `choppy` failed. The noise floor
-keeps an energy-based VAD engaged through the hesitation pauses that otherwise end
-the turn early, so the utterance survives in one piece instead of being cut in
-two. This is a property of *that* endpointer, not a fact about voice agents — but
-it is exactly the kind of thing you want to find before a customer does.
+Six acoustic conditions — telephone band-limiting, cafe and street noise at
+measured SNR, 1.2x speed, 10% packet loss — moved the result by eight points.
+Changing which of six languages the same sentence was spoken in moved it by
+seventy-nine.
+
+**Hindi barely worked at all.** 4% across 72 cases, failing in every register
+including the formal one, with `failure_locus: asr` almost throughout: the words
+never arrived, so nothing downstream had a chance. That is whisper-small, on
+CPU, on Hindi — and it is the shape of the disparity the citations above
+describe, reproduced by a test suite you can run in three minutes.
+
+**Disfluency broke every language, and noise was the only thing that helped.**
+The `disfluent` register scored 11% overall. Split by condition, every passing
+case is in a noisy one:
+
+| | clean | telephone | fast | choppy | cafe_10db | street_5db |
+|---|---|---|---|---|---|---|
+| disfluent | 0% | 0% | 0% | 0% | **33%** | **33%** |
+
+A noise floor keeps an energy-based VAD engaged through the hesitation pauses
+that otherwise end the turn early, so the utterance survives in one piece
+instead of being cut in two. This is a property of *that* endpointer, not a fact
+about voice agents — but it is exactly the kind of thing you want to find before
+a customer does.
+
+Latency failed everywhere, uniformly, for the reason given above.
 
 ## The bundled scenarios
 
