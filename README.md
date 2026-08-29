@@ -217,8 +217,8 @@ sayagain new my_scenario
 
 Good first issues:
 
-- [Add a language to the example scenarios](https://github.com/lusknchars/sayagain/labels/good%20first%20issue)
-- [Mark expectations as advisory rather than blocking](https://github.com/lusknchars/sayagain/labels/good%20first%20issue)
-- [Re-score an existing run from its JSONL logs](https://github.com/lusknchars/sayagain/labels/good%20first%20issue)
+- [Add a language to the example scenarios](https://github.com/lusknchars/sayagain/issues/1)
+- [Mark expectations as advisory rather than blocking](https://github.com/lusknchars/sayagain/issues/2)
+- [Re-score an existing run from its JSONL logs](https://github.com/lusknchars/sayagain/issues/3)
 
 MIT licensed.
