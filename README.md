@@ -5,7 +5,7 @@ Same intent, many surface forms — does the agent still do the right thing?
 
 > *Does your voice agent understand your grandmother?*
 
-![pass rate per assertion, by register and perturbation](docs/heatmap.png)
+![pass rate per assertion, by register and perturbation](https://raw.githubusercontent.com/lusknchars/sayagain/main/docs/heatmap.png)
 
 ```bash
 pip install sayagain
@@ -171,7 +171,7 @@ scenario one translation at a time. Arguments are matched through a normalizer:
 `friday` matches `sexta-feira`, `viernes`, `Freitag` and `शुक्रवार`, and `09/04`
 is read as 4 September in `en-US` and 9 April everywhere else.
 
-Full reference: [docs/scenarios.md](docs/scenarios.md).
+Full reference: [docs/scenarios.md](https://github.com/lusknchars/sayagain/blob/main/docs/scenarios.md).
 
 ## Connecting your agent
 
@@ -180,7 +180,7 @@ Three adapters ship: `mock` (in-process, for the demo and CI), `websocket`
 
 The WebSocket protocol is small enough to implement in any language in about an
 hour — binary PCM16 frames both ways, a handful of JSON messages — and is
-specified in full in [docs/adapter-protocol.md](docs/adapter-protocol.md).
+specified in full in [docs/adapter-protocol.md](https://github.com/lusknchars/sayagain/blob/main/docs/adapter-protocol.md).
 
 ```bash
 sayagain run examples/ --adapter websocket --url ws://localhost:8765
