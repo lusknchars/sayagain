@@ -182,9 +182,32 @@ The WebSocket protocol is small enough to implement in any language in about an
 hour — binary PCM16 frames both ways, a handful of JSON messages — and is
 specified in full in [docs/adapter-protocol.md](https://github.com/lusknchars/sayagain/blob/main/docs/adapter-protocol.md).
 
+### Try it on localhost
+
+A complete reference agent ships in the repo. It imports nothing from
+`sayagain` — it is there to show that the agent side needs no library.
+
 ```bash
-sayagain run examples/ --adapter websocket --url ws://localhost:8765
+# terminal 1
+uv run python examples/agents/local_agent.py
+
+# terminal 2
+sayagain run examples/reschedule_appointment.yaml \
+    --adapter websocket --url ws://localhost:8765 \
+    --only-language en-US --only-perturbation clean --repeats 1
 ```
+
+Four cases in about a minute, over a real socket. The agent prints what it heard
+and what it called, so you can watch both sides. It transcribes with
+faster-whisper when installed and falls back to a canned line when not, so the
+plumbing works on a machine with no model downloaded.
+
+Worth knowing: writing that agent, the harness immediately failed it on
+`max_barge_in_stop_ms` at 765 ms. The agent was awaiting its own reply inside the
+socket read loop, so while speaking it was not reading — and an agent that is not
+reading cannot notice it is being talked over. It never stopped; it just
+finished. That is the single most common way to fail barge-in, and it is
+invisible until something measures it.
 
 ## Limitations
 

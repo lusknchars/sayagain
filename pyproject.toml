@@ -75,6 +75,8 @@ ignore = ["D203", "D213", "D107"]  # class docstrings cover __init__
 "tests/*" = ["D"]
 
 [tool.mypy]
+# The reference agent is imported by its integration test.
+mypy_path = "examples/agents"
 python_version = "3.12"  # numpy stubs need 3.12+; CI still runs the tests on 3.11
 strict = true
 warn_unreachable = true

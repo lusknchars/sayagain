@@ -63,7 +63,22 @@ frame of interrupting user audio to your last frame of outgoing audio. An agent
 that queues its whole reply up front and ignores incoming audio will score
 badly, and should.
 
-### A minimal agent
+### A runnable agent
+
+`examples/agents/local_agent.py` is a complete implementation of everything
+above — about 200 readable lines, importing nothing from `sayagain`. Run it and
+point the harness at it:
+
+```bash
+uv run python examples/agents/local_agent.py
+sayagain run examples/reschedule_appointment.yaml --adapter websocket --url ws://localhost:8765
+```
+
+`tests/test_local_agent.py` drives a whole case through it over a real socket,
+which is the only way to catch a protocol mistake that both sides of a mock
+would agree on.
+
+### The shape, in miniature
 
 ```python
 import asyncio, json, websockets
